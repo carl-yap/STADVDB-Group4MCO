@@ -1,0 +1,20 @@
+CREATE TABLE dim_game (
+    gameID INT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    releaseDate DATE,
+    requiredAge INT,
+    aboutTheGame TEXT,
+    websiteURL VARCHAR(255),
+    supportURL VARCHAR(255),
+    supportEmail VARCHAR(255),
+    supportedLanguages TEXT,
+    fullAudioLanguages TEXT,
+    headerImageHREF VARCHAR(255),
+    categories TEXT,
+    tags TEXT,
+    genres TEXT
+);
+
+CREATE FULLTEXT INDEX idx_tags ON dim_game(tags);
+CREATE FULLTEXT INDEX idx_genres ON dim_game(genres);
+CREATE FULLTEXT INDEX idx_categories ON dim_game(categories);
