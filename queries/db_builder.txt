@@ -18,3 +18,60 @@ CREATE TABLE dim_game (
 CREATE FULLTEXT INDEX idx_tags ON dim_game(tags);
 CREATE FULLTEXT INDEX idx_genres ON dim_game(genres);
 CREATE FULLTEXT INDEX idx_categories ON dim_game(categories);
+
+CREATE TABLE dim_company (
+    companyID INT AUTO_INCREMENT PRIMARY KEY,
+    developer VARCHAR(255),
+    publisher VARCHAR(255)
+);
+
+CREATE TABLE dim_OS (
+    osID VARCHAR(3) PRIMARY KEY,
+    windowsSupport TINYINT(1) NOT NULL,
+    macSupport TINYINT(1) NOT NULL,
+    linuxSupport TINYINT(1) NOT NULL
+);
+
+INSERT INTO dim_OS (osID, windowsSupport, macSupport, linuxSupport)
+VALUES ('100', 1, 0, 0);
+
+INSERT INTO dim_OS (osID, windowsSupport, macSupport, linuxSupport)
+VALUES ('010', 0, 1, 0);
+
+INSERT INTO dim_OS (osID, windowsSupport, macSupport, linuxSupport)
+VALUES ('001', 0, 0, 1);
+
+INSERT INTO dim_OS (osID, windowsSupport, macSupport, linuxSupport)
+VALUES ('110', 1, 1, 0);
+
+INSERT INTO dim_OS (osID, windowsSupport, macSupport, linuxSupport)
+VALUES ('011', 0, 1, 1);
+
+INSERT INTO dim_OS (osID, windowsSupport, macSupport, linuxSupport)
+VALUES ('101', 1, 0, 1);
+
+INSERT INTO dim_OS (osID, windowsSupport, macSupport, linuxSupport)
+VALUES ('111', 1, 1, 1);
+
+CREATE TABLE fact_gamemetrics (
+    gameID INT,
+    companyID INT,
+    osID VARCHAR(3),
+    price FLOAT,
+    peakCCU INT,
+    achievementCount INT,
+    averagePlaytimeForever FLOAT,
+    medianPlaytimeForever FLOAT,
+    estimatedOwners VARCHAR(255), 
+    dlcCount INT,
+    metacriticScore INT,
+    userScore FLOAT,
+    positive INT,
+    negative INT,
+    scoreRank INT,
+    recommendations INT,
+
+    FOREIGN KEY (gameID) REFERENCES dim_game(gameID),
+    FOREIGN KEY (companyID) REFERENCES dim_company(companyID),  
+    FOREIGN KEY (osID) REFERENCES dim_os(osID)
+);
