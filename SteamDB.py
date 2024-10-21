@@ -120,7 +120,8 @@ class SteamDB:
             fact_df = fact_df[fact_attr]
             
             curr_action = "fact table companyID"
-            fact_df['companyID'] = self.get_company_id(dim_company_df, fact_df['gameID'])
+            company_id_df = self.get_company_id(dim_company_df, fact_df['gameID'])
+            fact_df = pd.merge(fact_df, company_id_df, on=['gameID'], how='left')
             
             curr_action = "fact table osID"
             fact_df['osID'] = self.df.apply(lambda row: self.get_os_string(row['windowsSupport'],
@@ -132,12 +133,12 @@ class SteamDB:
             print(f"Failed to populate '{curr_action}': {e}")
             
     def get_company_id(self, company_df: pd.DataFrame, game_ids: pd.Series):
-        result = self.df[self.df['gameID'].isin(game_ids)][['developer', 'publisher']]
+        result = self.df[self.df['gameID'].isin(game_ids)][['gameID', 'developer', 'publisher']]
         merged_result = pd.merge(result, 
                                 company_df, 
                                 on=['developer', 'publisher'], 
                                 how='inner')
-        return pd.Series(merged_result['companyID'])
+        return merged_result[['gameID', 'companyID']]
     
     def get_os_string(self, windows, mac, linux):
         windows_bit = 1 if windows else 0
@@ -149,8 +150,10 @@ class SteamDB:
         with self.engine.connect() as connection:
             result = connection.execute(text(sql_query))
             res_df = pd.DataFrame(result.fetchall(), columns=result.keys())
-            print(res_df)
-            return res_df if with_results else None
+            if with_results:
+                return res_df
+            else:
+                print(res_df)
 
     def insert_to_mysql(self, df: pd.DataFrame, table_name):
         with self.engine.connect() as connection:
