@@ -2,9 +2,11 @@
 This file contains the SteamDB class. It will setup the data warehouse schema on an empty MySQL database.
 """
 
+import os
 import pandas as pd
 from sqlalchemy import create_engine, update, select, text, Table, MetaData
 from mysql.connector import Error
+from datetime import datetime
 
 
 class SteamDB:
@@ -154,6 +156,15 @@ class SteamDB:
             result = connection.execute(text(sql_query))
             res_df = pd.DataFrame(result.fetchall(), columns=result.keys())
             if with_results:
+                output_dir = 'queries/output'
+                if not os.path.exists(output_dir):
+                    os.makedirs(output_dir)
+                
+                # Generate a filename based on the query or timestamp
+                current_time = datetime.now().strftime("%Y%m%d_%H%M%S") 
+                output_file = os.path.join(output_dir, f'query_output_{current_time}.csv')
+                
+                res_df.to_csv(output_file, index=False)
                 return res_df
             else:
                 print(res_df)
