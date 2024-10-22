@@ -8,7 +8,7 @@ from mysql.connector import Error
 
 
 class SteamDB:
-    def __init__(self, db_config, csv_file="data/games_fixed.csv"):
+    def __init__(self, db_config, csv_file="data/games_fixed.csv", connect_only=False):
         self.csv_file = csv_file
         self.db_config = db_config
         self.df = None
@@ -16,8 +16,11 @@ class SteamDB:
         self.metadata = None
         
         # Internal Setup
-        self.load_csv()
-        self.create_connection()
+        if not connect_only:    
+            self.load_csv()
+            self.create_connection()
+        else:
+            self.engine = create_engine(f"mysql+mysqlconnector://{self.db_config['user']}:{self.db_config['password']}@{self.db_config['host']}:{self.db_config['port']}/{self.db_config['database']}")
 
     def load_csv(self):
         # Load CSV into a DataFrame
