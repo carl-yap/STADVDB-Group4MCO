@@ -1,7 +1,8 @@
 # STADVDB-Group4MCO
 Online repository for Major Course Outputs of Group 4 [STADVDB S16, AY2024-2025]
 
-# Distributed Database System for Steam Games
+MCO1: Data Warehouse with ETL Script for Steam Games
+MCO2: Distributed Database System for Steam Games
 
 ## Project Setup
 
@@ -31,7 +32,7 @@ Online repository for Major Course Outputs of Group 4 [STADVDB S16, AY2024-2025]
 
 ### Connection Credentials
 - Username: admin
-- Password: distributed_db_password
+- Password: we<3stadvdb
 
 ### Next Steps
 1. Implement replication mechanism

@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  # Central Node (Node 1)
+  central-node:
+    image: postgres:15
+    container_name: central-node
+    environment:
+      POSTGRES_DB: steam_games_central
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: we<3stadvdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init-scripts/central-node-init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - distributed-db-network
+
+  # Node 2 (Update Node)
+  update-node:
+    image: postgres:15
+    container_name: update-node
+    environment:
+      POSTGRES_DB: steam_games_update
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: we<3stadvdb
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./init-scripts/update-node-init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - distributed-db-network
+
+  # Node 3 (Replica Node)
+  replica-node:
+    image: postgres:15
+    container_name: replica-node
+    environment:
+      POSTGRES_DB: steam_games_replica
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: we<3stadvdb
+    ports:
+      - "5434:5432"
+    volumes:
+      - ./init-scripts/replica-node-init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - distributed-db-network
+
+networks:
+  distributed-db-network:
+    driver: bridge
