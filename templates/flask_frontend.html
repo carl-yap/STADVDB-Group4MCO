@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Distributed DB Concurrency Simulator</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .node-container { display: flex; justify-content: space-between; }
+        .node { border: 1px solid #ddd; padding: 10px; width: 30%; }
+        .simulation-status { margin-top: 20px; }
+        pre { overflow-x: auto; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>Distributed Database Concurrency Simulator</h1>
+    <div>
+        <button id="case1-btn" onclick="simulateConcurrentReads()">Case #1: Concurrent Reads</button>
+        <button id="case2-btn" onclick="simulateMixedReadWrite()">Case #2: Mixed Read-Write</button>
+        <button id="case3-btn" onclick="simulateConcurrentWrites()">Case #3: Concurrent Writes</button>
+    </div>
+    
+    <div class="node-container">
+        <div class="node">
+            <h2>Node 1 (Central)</h2>
+            <pre id="node1"></pre>
+        </div>
+        <div class="node">
+            <h2>Node 2 (Update)</h2>
+            <pre id="node2"></pre>
+        </div>
+        <div class="node">
+            <h2>Node 3 (Replica)</h2>
+            <pre id="node3"></pre>
+        </div>
+    </div>
+
+    <div class="simulation-status">
+        <span id="simulation-status-text"></span>
+    </div>
+
+    <script>
+        let intervalId;
+
+        async function simulateConcurrentReads() {
+            disableButtons();
+            try {
+                await axios.post('/case1');
+                updateSimulationStatus('Concurrent reads simulation completed.');
+            } catch (error) {
+                console.error('Error:', error);
+                updateSimulationStatus('Concurrent reads simulation failed.');
+            } finally {
+                enableButtons();
+            }
+        }
+
+        async function simulateMixedReadWrite() {
+            disableButtons();
+            try {
+                await axios.post('/case2');
+                updateSimulationStatus('Mixed read-write simulation completed.');
+            } catch (error) {
+                console.error('Error:', error);
+                updateSimulationStatus('Mixed read-write simulation failed.');
+            } finally {
+                enableButtons();
+            }
+        }
+
+        async function simulateConcurrentWrites() {
+            disableButtons();
+            try {
+                await axios.post('/case3');
+                updateSimulationStatus('Concurrent writes simulation completed.');
+            } catch (error) {
+                console.error('Error:', error);
+                updateSimulationStatus('Concurrent writes simulation failed.');
+            } finally {
+                enableButtons();
+            }
+        }
+
+        async function displayNodeInfo() {
+            try {
+                const response = await axios.get('/node-info');
+                document.getElementById('node1').textContent = JSON.stringify(response.data.node1, null, 2);
+                document.getElementById('node2').textContent = JSON.stringify(response.data.node2, null, 2);
+                document.getElementById('node3').textContent = JSON.stringify(response.data.node3, null, 2);
+            } catch (error) {
+                console.error('Error:', error);
+                updateSimulationStatus('Failed to fetch node information.');
+            }
+        }
+
+        function disableButtons() {
+            document.getElementById('case1-btn').disabled = true;
+            document.getElementById('case2-btn').disabled = true;
+            document.getElementById('case3-btn').disabled = true;
+        }
+
+        function enableButtons() {
+            document.getElementById('case1-btn').disabled = false;
+            document.getElementById('case2-btn').disabled = false;
+            document.getElementById('case3-btn').disabled = false;
+        }
+
+        function updateSimulationStatus(message) {
+            document.getElementById('simulation-status-text').textContent = message;
+        }
+
+        // Start polling for node info updates
+        intervalId = setInterval(displayNodeInfo, 5000);
+    </script>
+</body>
+</html>

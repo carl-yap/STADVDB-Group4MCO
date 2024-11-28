@@ -1,5 +1,5 @@
 -- Central Node Database Initialization
-CREATE TABLE steam_games (
+CREATE TABLE IF NOT EXISTS public.steam_games (
     game_id SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     developer VARCHAR(255),
