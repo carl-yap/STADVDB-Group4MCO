@@ -7,8 +7,8 @@ MCO2: Distributed Database System for Steam Games
 ## Project Setup
 
 ### Prerequisites
-- Docker
-- Docker Compose
+- Docker, Docker Compose
+- pip install flask, flask_cors, psycopg2
 
 ### Getting Started
 
@@ -18,6 +18,8 @@ MCO2: Distributed Database System for Steam Games
    ```
    docker-compose up -d
    ```
+4. If not yet installed, run pip to meet the prerequisite Python libraries.
+5. Run `python flask_simulator.py`
 
 ### Database Connections
 - Central Node: 
@@ -34,12 +36,7 @@ MCO2: Distributed Database System for Steam Games
 - Username: admin
 - Password: we<3stadvdb
 
-### Next Steps
-1. Implement replication mechanism
-2. Develop concurrency control
-3. Create crash and recovery simulation scripts
-
-## Technical Considerations
+### Technical Considerations
 - Three-node PostgreSQL cluster
 - Bridge network for inter-node communication
 - Initialized with Steam Games dataset

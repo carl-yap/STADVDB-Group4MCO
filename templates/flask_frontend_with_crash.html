@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Distributed Database Concurrency Simulator</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .node-container { display: flex; justify-content: space-between; }
+        .node { border: 1px solid #ddd; padding: 10px; width: 30%; }
+        .simulation-status { margin-top: 20px; }
+        pre { overflow-x: auto; white-space: pre-wrap; }
+        .node.crashed { background-color: #ffdddd; border-color: #ff0000; }
+        .node-status { font-weight: bold; margin-top: 10px; }
+        .crash-menu { display: flex; justify-content: space-around; margin-bottom: 20px; }
+        button { margin: 0 5px; padding: 5px 10px; }
+    </style>
+</head>
+<body>
+    <h1>Distributed Database Concurrency Simulator</h1>
+
+    <div class="crash-menu">
+        <h3>Crash Menu</h3>
+        <button onclick="simulateCrash('Node-1')">Crash Node 1 (Central)</button>
+        <button onclick="simulateCrash('Node-2')">Crash Node 2 (Update)</button>
+        <button onclick="simulateCrash('Node-3')">Crash Node 3 (Replica)</button>
+        <button onclick="recoverAllNodes()">Recover All Nodes</button>
+    </div>
+
+    <div class="simulation-cases">
+        <h3>Test Cases</h3>
+        <div>
+            <button onclick="runCase1()">Case #1: Concurrent Reads</button>
+            <button onclick="runCase2()">Case #2: Mixed Read-Write</button>
+            <button onclick="runCase3()">Case #3: Concurrent Writes</button>
+        </div>
+    </div>
+
+    <div class="node-container">
+        <div class="node" id="node1">
+            <h2>Node 1 (Central)</h2>
+            <div class="node-status">Active</div>
+            <pre id="node1-info"></pre>
+        </div>
+        <div class="node" id="node2">
+            <h2>Node 2 (Update)</h2>
+            <div class="node-status">Active</div>
+            <pre id="node2-info"></pre>
+        </div>
+        <div class="node" id="node3">
+            <h2>Node 3 (Replica)</h2>
+            <div class="node-status">Active</div>
+            <pre id="node3-info"></pre>
+        </div>
+    </div>
+
+    <div class="simulation-status">
+        <h3>Simulation Status</h3>
+        <pre id="simulation-status-text"></pre>
+    </div>
+
+    <script>
+        // Utility function to update node information
+        async function updateNodeInfo() {
+            try {
+                const response = await axios.get('/node-info');
+                const nodes = response.data;
+
+                updateNodeDisplay('node1', nodes.node1);
+                updateNodeDisplay('node2', nodes.node2);
+                updateNodeDisplay('node3', nodes.node3);
+            } catch (error) {
+                console.error('Error fetching node info:', error);
+            }
+        }
+
+        function updateNodeDisplay(nodeId, nodeData) {
+            const nodeInfoElement = document.getElementById(`${nodeId}-info`);
+            const nodeElement = document.getElementById(nodeId);
+
+            if (nodeInfoElement && nodeData) {
+                nodeInfoElement.textContent = JSON.stringify(nodeData, null, 2);
+            }
+        }
+
+        // Case running functions
+        async function runCase1() {
+            try {
+                await axios.post('/case1');
+                await updateNodeInfo();
+                updateSimulationStatus('Case 1 (Concurrent Reads) completed');
+            } catch (error) {
+                updateSimulationStatus('Error in Case 1: ' + error.message);
+            }
+        }
+
+        async function runCase2() {
+            try {
+                await axios.post('/case2');
+                await updateNodeInfo();
+                updateSimulationStatus('Case 2 (Mixed Read-Write) completed');
+            } catch (error) {
+                updateSimulationStatus('Error in Case 2: ' + error.message);
+            }
+        }
+
+        async function runCase3() {
+            try {
+                await axios.post('/case3');
+                await updateNodeInfo();
+                updateSimulationStatus('Case 3 (Concurrent Writes) completed');
+            } catch (error) {
+                updateSimulationStatus('Error in Case 3: ' + error.message);
+            }
+        }
+
+        
+
+        function updateSimulationStatus(message) {
+            const statusElement = document.getElementById('simulation-status-text');
+            statusElement.textContent = message;
+            console.log(message);
+        }
+
+        // Event Listeners
+        document.getElementById('crash-button').addEventListener('click', crashSelectedNodes);
+        document.getElementById('recover-button').addEventListener('click', recoverAllNodes);
+
+        // Periodic node info update
+        setInterval(updateNodeInfo, 5000);
+        
+        // Initial node info update
+        updateNodeInfo();
+
+        function simulateCrash(nodeId) {
+            fetch('/simulate-crash', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ node_id: nodeId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Find the corresponding node element
+                const nodeElement = document.querySelector(`#${getNodeElementId(nodeId)}`);
+                const statusIndicator = nodeElement.querySelector('.node-status');
+                
+                // Add crashed styling
+                nodeElement.classList.add('crashed');
+                statusIndicator.textContent = 'Crashed';
+                statusIndicator.style.color = 'red';
+                
+                // Update simulation status
+                const simulationStatus = document.getElementById('simulation-status-text');
+                simulationStatus.textContent = `Node ${nodeId} simulated crash at ${new Date().toLocaleTimeString()}`;
+            })
+            .catch(error => {
+                console.error('Error simulating crash:', error);
+                const simulationStatus = document.getElementById('simulation-status-text');
+                simulationStatus.textContent = `Failed to crash ${nodeId}: ${error.message}`;
+            });
+        }
+
+        function recoverAllNodes() {
+            // Recover Node-1
+            fetch('/recover', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ node_id: 'Node-1' })
+            })
+            .then(() => fetch('/recover', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ node_id: 'Node-2' })
+            }))
+            .then(() => fetch('/recover', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ node_id: 'Node-3' })
+            }))
+            .then(() => {
+                // Trigger status check to update UI
+                checkNodeRecoveryStatus();
+                
+                // Update simulation status
+                const simulationStatus = document.getElementById('simulation-status-text');
+                simulationStatus.textContent = `All nodes recovered at ${new Date().toLocaleTimeString()}`;
+            })
+            .catch(error => {
+                console.error('Error recovering nodes:', error);
+                const simulationStatus = document.getElementById('simulation-status-text');
+                simulationStatus.textContent = `Failed to recover nodes: ${error.message}`;
+            });
+        }
+
+        function checkNodeRecoveryStatus() {
+            fetch('/node-recovery-status')
+                .then(response => response.json())
+                .then(data => {
+                    // Update node statuses
+                    Object.keys(data).forEach(nodeId => {
+                        const nodeElement = document.querySelector(`#${getNodeElementId(nodeId)}`);
+                        const statusIndicator = nodeElement.querySelector('.node-status');
+                        
+                        if (data[nodeId].is_available) {
+                            // Remove crash styling
+                            nodeElement.classList.remove('crashed');
+                            statusIndicator.textContent = 'Active';
+                            statusIndicator.style.color = 'green';
+                        } else {
+                            // Maintain crash styling
+                            nodeElement.classList.add('crashed');
+                            statusIndicator.textContent = 'Crashed';
+                            statusIndicator.style.color = 'red';
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Error checking node recovery status:', error);
+                });
+        }
+
+        // Helper function to map node IDs to element IDs
+        function getNodeElementId(nodeId) {
+            const nodeMap = {
+                'Node-1': 'node1',
+                'Node-2': 'node2', 
+                'Node-3': 'node3'
+            };
+            return nodeMap[nodeId] || nodeId;
+        }
+
+        // Check recovery status every 3 seconds
+        setInterval(checkNodeRecoveryStatus, 3000);
+
+        // Initial status check
+        checkNodeRecoveryStatus();
+    </script>
+</body>
+</html>
