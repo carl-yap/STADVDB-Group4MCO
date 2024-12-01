@@ -73,7 +73,7 @@ class DatabaseNode:
         self.current_tx = tx_id
         return tx_id
 
-    def execute_transaction(self, tx_id: str, query: str, max_retries: int = 3, retry_delay: float = 1.0) -> bool:
+    def execute_transaction(self, tx_id: str, query: str, params: tuple = None, max_retries: int = 3, retry_delay: float = 1.0) -> bool:
         if tx_id not in self.transactions or self.transactions[tx_id]['status'] != 'ACTIVE':
             raise ValueError('Invalid transaction')
         
@@ -95,8 +95,12 @@ class DatabaseNode:
                     self.conn.commit()
                     tx['status'] = 'COMMITTED'
 
-                    if self.is_central:
-                        self.replicate_data()
+                    if self.is_central and tx['status'] == 'COMMITTED':
+                        replication_data = {
+                            'query': query,
+                            'params': params or ()
+                        }
+                        self.replicate_data(transaction_data=replication_data)
                         
                     # Store operation for potential recovery
                     self.recovery_log[tx_id]['operation'] = cur.query
@@ -133,7 +137,7 @@ class DatabaseNode:
     
     ### REPLICATION MECHANISM ###
     
-    def replicate_data(self, table_name: str = 'steam_games') -> Dict[str, Any]:
+    def replicate_data(self, table_name: str = 'steam_games', transaction_data: Dict = None) -> Dict[str, Any]:
         """
         Replicate data from master node to slave nodes.
         
@@ -152,8 +156,14 @@ class DatabaseNode:
 
         # Fetch data to be replicated
         with self.conn.cursor() as cur:
-            cur.execute(f"SELECT * FROM {table_name}")
-            master_data = cur.fetchall()
+            if transaction_data:
+                # Replicate specific transaction data
+                cur.execute(transaction_data['query'], transaction_data.get('params', ()))
+                master_data = cur.fetchall()
+            else:
+                # Full table replication
+                cur.execute(f"SELECT * FROM {table_name}")
+                master_data = cur.fetchall()
 
         # Replicate to each slave node
         for slave_node_id in self.slave_nodes:
@@ -162,22 +172,32 @@ class DatabaseNode:
                 slave_conn = self.connect_to_database(slave_node_id)
                 
                 with slave_conn.cursor() as slave_cur:
-                    # Delete existing data in the slave table
-                    slave_cur.execute(f"DELETE FROM {table_name}")
+                    # Start a transaction
+                    slave_cur.execute("BEGIN;")
                     
-                    # Prepare and execute insert statements for each row
-                    for row in master_data:
-                        # Adjust the placeholders based on your table's schema
-                        placeholders = ', '.join(['%s'] * len(row))
-                        insert_query = f"INSERT INTO {table_name} VALUES ({placeholders})"
-                        slave_cur.execute(insert_query, row)
-                
-                # Commit changes
-                slave_conn.commit()
-                replication_status[slave_node_id] = {
-                    'status': 'SUCCESS',
-                    'rows_replicated': len(master_data)
-                }
+                    if transaction_data:
+                        # Replicate specific transaction
+                        placeholders = ', '.join(['%s'] * len(transaction_data['params']))
+                        replicate_query = transaction_data['query']
+                        slave_cur.execute(replicate_query, transaction_data['params'])
+                    else:
+                        # Full table replication
+                        # Delete existing data in the slave table
+                        slave_cur.execute(f"DELETE FROM {table_name}")
+                        
+                        # Prepare and execute insert statements for each row
+                        for row in master_data:
+                            placeholders = ', '.join(['%s'] * len(row))
+                            insert_query = f"INSERT INTO {table_name} VALUES ({placeholders})"
+                            slave_cur.execute(insert_query, row)
+                    
+                    # Commit the transaction
+                    slave_conn.commit()
+                    
+                    replication_status[slave_node_id] = {
+                        'status': 'SUCCESS',
+                        'rows_replicated': len(master_data) if not transaction_data else 1
+                    }
                 
                 # Close slave connection
                 slave_conn.close()
@@ -226,13 +246,14 @@ class DatabaseNode:
         
     ### CRASH AND RECOVERY ###
     
-    def start_automatic_recovery(self, interval: int = 30):
+    def start_automatic_recovery(self, interval: int = 5):
         """
         Start a background thread for automatic periodic recovery attempts
         
         Args:
             interval (int): Recovery check interval in seconds. Defaults to 30.
         """
+        self.stop_periodic_replication()
         self.recovery_interval = interval
         self.stop_recovery.clear()
 
@@ -260,6 +281,7 @@ class DatabaseNode:
         if self.recovery_thread and self.recovery_thread.is_alive():
             self.stop_recovery.set()
             self.recovery_thread.join()
+            self.start_periodic_replication()
 
     def simulate_crash(self):
         """Simulate node crash by closing connection and marking as unavailable"""

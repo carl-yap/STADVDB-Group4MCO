@@ -114,17 +114,11 @@
             }
         }
 
-        
-
         function updateSimulationStatus(message) {
             const statusElement = document.getElementById('simulation-status-text');
             statusElement.textContent = message;
             console.log(message);
         }
-
-        // Event Listeners
-        document.getElementById('crash-button').addEventListener('click', crashSelectedNodes);
-        document.getElementById('recover-button').addEventListener('click', recoverAllNodes);
 
         // Periodic node info update
         setInterval(updateNodeInfo, 5000);
@@ -206,6 +200,7 @@
                 .then(data => {
                     // Update node statuses
                     Object.keys(data).forEach(nodeId => {
+                        console.log(nodeId, data[nodeId].is_available);
                         const nodeElement = document.querySelector(`#${getNodeElementId(nodeId)}`);
                         const statusIndicator = nodeElement.querySelector('.node-status');
                         
