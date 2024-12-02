@@ -19,9 +19,11 @@ MCO2: Distributed Database System for Steam Games
    docker-compose up -d
    ```
 4. If not yet installed, run pip to meet the prerequisite Python libraries.
-5. Run `python flask_simulator.py`
+5. Run `python "STADVDB MCO2 Group 5 Code.py"`
+6. Open the web application from the link provided by Flask.
 
 ### Database Connections
+**All dbs are in the localhost server**
 - Central Node: 
   - Port: 5432
   - Database: steam_games_central
